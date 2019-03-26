@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bxly.toursts.dao.BaiduMapInfoMapper" >
+    <!-- 向对应表中插入旅游相关数据 -->
+     <insert id="getBaiduMapInfo" parameterType="com.bxly.toursts.model.TouristInfo">
+        INSERT INTO
+          tourist_info
+            (
+            province,city,region_name,name,address,location,navi_location,uid
+            ,street_id,phone,type,tag,detail_url,price,overall_rating
+            ) VALUES (
+            #{province},#{city},#{area},#{name},#{address},#{location},#{naviLocation}
+            ,#{uid},#{streetId},#{phone},#{type},#{tag},#{detailUrl},#{price},#{overallRating}
+            )
+     </insert>
+
+    <!-- 插入旅游景点出入口信息前过滤重复数据 -->
+    <select id="findCountByUid" parameterType="java.lang.String" resultType="java.lang.Integer">
+        SELECT
+          COUNT(uid)
+        FROM
+          park_info
+        WHERE
+          uid=#{uid}
+    </select>
+
+    <!-- 向表中插入旅游景点出入口信息 -->
+    <insert id="insertTouristParkInfo" parameterType="com.bxly.toursts.model.ParkInfo">
+        INSERT INTO
+          park_info
+            (
+            city,name,address,parent_uid,show_name,location,tag,uid
+            ) VALUES (
+            #{city},#{name},#{address},#{parentUid},#{showName},#{location},#{tag},#{uid}
+            )
+     </insert>
+
+    <!-- 添加百度旅游网站相关数据 -->
+    <insert id="addBaiduJourneyInfo" parameterType="com.bxly.toursts.model.JourneyInfo">
+        INSERT INTO
+          journey_info
+          (
+          province,city,impression,more_desc,map_info,traffic_info,best_season
+          ,suggest_play_time,ticket_info,open_time,address,jounery_rank,avg_cost,going_count,phone,main_score,web_site,friendship_tips
+          ) VALUES (
+          #{province},#{city},#{impression},#{moreDesc},#{mapInfo},#{trafficInfo}
+          ,#{bestSeason},#{suggestPlayTime},#{ticketInfo},#{openTime},#{address}
+          ,#{jouneryRank},#{avgCost},#{goingCount},#{phone},#{mainScore},#{webSite},#{friendshipTips}
+          )
+    </insert>
+
+    <!-- 查询城市是否存在 -->
+    <select id="findCountByName" parameterType="java.lang.String" resultType="java.lang.Integer">
+        SELECT
+          COUNT(area_name)
+        FROM
+          bx_region
+        WHERE
+          area_name = #{area_name}
+    </select>
+
+    <!-- 查询bx_region表中的parent_id-->
+    <insert id="addTouristInfos" parameterType="java.util.Map">
+        INSERT INTO
+        bx_region
+        (
+        returnto,destination,departure,parent_id,area_name,com_best,com_shortest,com_longest,com_central,com_level
+        ) VALUES(
+        #{returnto},#{destination},#{departure},#{parent_id}
+        ,#{area_name},#{com_best},#{com_shortest}
+        ,#{com_longest},#{com_central},#{com_level}
+        )
+        <!--<foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+        </foreach>-->
+    </insert>
+
+    <!-- 向商品表bx_region中添加数据 -->
+    <select id="findParentById" parameterType="java.lang.Integer" resultType="java.lang.Integer">
+        SELECT
+          IFNULL((
+            SELECT
+              id
+            FROM
+              bx_region
+            WHERE
+              com_level = #{str}
+          ), -1)
+    </select>
+
+    <!-- 查询父类Code -->
+    <select id="findParentCode" parameterType="java.lang.String">
+        SELECT
+          id
+        FROM
+          bx_commodity
+        WHERE
+          com_code = #{str}
+    </select>
+
+    <!-- 根据com_code查询parent_id -->
+    <select id="findParentByCode" parameterType="java.lang.String" resultType="java.lang.Integer">
+        SELECT
+          IFNULL((
+            SELECT
+              id
+            FROM
+              bx_commodity
+            WHERE
+              com_code = #{str}
+          ), -1)
+    </select>
+
+    <!-- 向bx_commodity商品表中插入数据 -->
+    <insert id="addTouristProductsInfos" parameterType="java.util.Map">
+        INSERT INTO
+          bx_commodity (
+          com_code,com_name,com_central,mer_code,mer_agency,com_passport,bx_op_deptid,op_deptName
+          ,com_best,com_shortest,com_longest,com_type,com_level,parentid,com_begining,com_moment
+          ) VALUES (
+          #{com_code},#{com_name},#{com_central},#{mer_code},#{mer_agency},#{com_passport},#{bx_op_deptid}
+          ,#{op_deptName},#{com_best},#{com_shortest},#{com_longest},#{com_type},#{com_level},#{parentid}
+          ,#{com_begining},#{com_moment}
+          )
+    </insert>
+
+    <!-- 查找全球parentId -->
+    <select id="findParentIds" parameterType="java.lang.Integer" resultType="java.lang.Integer">
+        SELECT
+          id
+        FROM
+          bx_region
+        WHERE
+          com_level = #{relation}
+    </select>
+
+    <!-- 查询bx_region表中所有city名称和id -->
+    <select id="queryCityInfos" resultType="map">
+      SELECT
+        id,area_name
+      FROM
+        bx_region
+      WHERE
+        parent_id != 0
+      AND parent_id != 33
+      AND id <![CDATA[<]]> 3112
+    </select>
+
+    <!-- 查询是市还是县 -->
+    <select id="findTouristCityInfo" parameterType="java.lang.String" resultType="java.lang.Integer">
+      USE `bxly-tourist`;
+        SELECT
+          COUNT(1)
+        FROM
+          tourist_info
+        WHERE
+          area = #{area_name}
+    </select>
+
+    <!-- 修改city为关联id -->
+    <update id="updateTouistCityInfo" parameterType="java.util.Map">
+      UPDATE tourist_info
+        SET city_id = #{id}
+        WHERE
+            area IN (
+                SELECT
+                    *
+                FROM
+                    (
+                        SELECT
+                            area
+                        FROM
+                            tourist_info
+                        WHERE
+                            city = #{area_name}
+                        AND area LIKE '%区'
+                    ) t
+            )
+    </update>
+    <!-- 修改县的city为关联id -->
+    <update id="updateTouistCountryInfo" parameterType="java.util.Map">
+      UPDATE tourist_info
+        SET city_id = #{id}
+        WHERE
+            area IN (
+                SELECT
+                    *
+                FROM
+                    (
+                        SELECT
+                            area
+                        FROM
+                            tourist_info
+                        WHERE
+                            area = #{area_name}
+                    ) t
+            )
+    </update>
+
+
+
+    <!-- 查询所有出入口信息 -->
+    <select id="getLocationInfos" resultType="java.util.Map">
+        SELECT
+            parent_uid 'uid',
+            GROUP_CONCAT(location SEPARATOR ' ') 'navi_location'
+        FROM
+            park_info
+        GROUP BY
+            parent_uid
+    </select>
+
+    <!-- 修改景区表bx_scenic出入口坐标 -->
+    <update id="updateLocaInfos" parameterType="java.util.List">
+        <foreach collection="list" item="item" index="index" separator=";">
+            update
+              bx_scenic
+            SET
+              navi_location=#{item.navi_location}
+            where
+              uid = #{item.uid}
+        </foreach>
+    </update>
+
+    <!-- 查询国家id及城市id -->
+    <select id="getStateAndCityInfo" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+            area_name,
+            id 'cityId',
+            (
+                SELECT
+                    id
+                FROM
+                    bx_region t
+                WHERE
+                    t.area_name = #{state}
+                    AND t.parent_id = 0
+            ) 'stateId'
+        FROM
+            bx_region
+        WHERE
+            area_name LIKE #{city}
+            AND
+              parent_id <![CDATA[<>]]> 0
+    </select>
+
+    <!-- 添加全球机场数据到bx_commodity商品表中 -->
+    <insert id="addAirportInfo" parameterType="java.util.Map">
+        INSERT INTO
+          bx_commodity
+          (
+            com_code,com_name,com_entrance,com_exit,com_duplex,com_best,state,city,com_address
+            ,parentid,com_type,mer_code,mer_agency
+          ) VALUES (
+            #{com_code},#{com_name},#{com_entrance},#{com_exit},#{com_duplex},#{com_best}
+            ,#{state},#{city},#{com_address},#{parentid},#{com_type},#{mer_code},#{mer_agency}
+          )
+    </insert>
+
+    <!-- 查询省市县id -->
+    <select id="getProvinceAndCityInfo" parameterType="java.lang.String" resultType="java.util.Map">
+        SELECT
+            id 'provinceId',
+            (
+                SELECT
+                    MIN(id)
+                FROM
+                    bx_region
+                WHERE
+                    area_name LIKE #{city}
+            ) 'cityId'
+        FROM
+            bx_region
+        WHERE
+            area_name LIKE #{province}
+            AND id <![CDATA[<]]> 3120
+
+    </select>
+
+    <!-- 添加火车站信息到数据库 -->
+    <insert id="addRailwayInfos" parameterType="java.util.List">
+        <foreach collection="list" item="item" index="index" separator=";">
+            INSERT INTO
+              bx_commodity (
+              com_code,com_name,com_type,com_duplex,com_best,com_address,state,province,city,parentid
+            ) VALUES (
+              #{item.com_code},#{item.com_name},#{item.com_type},#{item.com_duplex}
+            ,#{item.com_best},#{item.com_address},#{item.state},#{item.province},#{item.city},#{item.parentid}
+            )
+      </foreach>
+    </insert>
+
+    <!-- 查询城市id -->
+    <select id="findCityId" parameterType="java.lang.String" resultType="java.util.Map">
+        SELECT
+          min(id) 'id',
+          time_zone_id,
+          dst_offset,
+          raw_offset,
+          parent_id
+        FROM
+          bx_region
+        WHERE
+          area_name = #{region}
+    </select>
+
+    <!-- 添加美国西海岸景点到bx_merchant_co商品表中 -->
+    <insert id="insertMerchantParkInfo" parameterType="com.bxly.toursts.model.BxMerchantCo">
+        INSERT INTO
+          bx_merchant_co
+          (
+            mer_duplex,mer_introduce,timezone,dst_offset,raw_offset,state
+            ,city,mer_central,mer_name,mer_address,ticket_info
+            ,traffic_info,parent_id,mer_time
+          ) VALUES (
+            #{merDuplex},#{merIntroduce},#{timezone},#{dstOffset},#{rawOffset}
+            ,#{state},#{city},#{merCentral},#{merName},#{merAddress},#{ticketInfo}
+            ,#{trafficInfo},#{parentId},now()
+          )
+    </insert>
+
+</mapper>
